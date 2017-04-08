@@ -21,9 +21,11 @@ class AsyncioHelloWordTest(unittest.TestCase):
             async with aiohttp.ClientSession(loop=loop) as session:
                 html = await fetch(session, 'http://python.org')
                 self.assertIsNotNone(html, "python.org returns null")
-                print(html)
+                # print(html)
+                return html
 
         # loop = asyncio.get_event_loop()
         # loop.run_until_complete(main(loop))
-        self.loop.run_until_complete(main(self.loop))
+        html = self.loop.run_until_complete(main(self.loop))
+        print(html)
 
