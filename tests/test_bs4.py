@@ -35,3 +35,17 @@ class Bs4Test(unittest.TestCase):
         links = parse_html('http://yoyowallet.com', html_doc)
         self.assertEqual(links[0], "http://blog.yoyowallet.com")
         self.assertEqual(links[11], "https://support.yoyowallet.com/hc/en-gb/categories/201132913-Legal-and-T-Cs")
+
+    def test_get_asserts(self):
+        html_doc = read_data("yoyowallet.html")
+        base_url = 'http://yoyowallet.com'
+        # <a href="*" />, <link rel="*" />, <img src="*" />, <script src="*" />
+        soup = BeautifulSoup(html_doc, 'lxml', parse_only=SoupStrainer(['a', 'link', 'img', 'script']))
+        links = [urljoin(base_url, t.get('href')) for t in soup.find_all(['a', 'link']) if t.get('href') is not None]
+        links += [urljoin(base_url, t.get('src')) for t in soup.find_all(['img', 'script']) if t.get('src') is not None]
+        links = sorted(set(link.strip('/') for link in links))
+        # print("\n".join(links))
+        self.assertIsNotNone(links)
+        self.assertEqual(links[0], "http://blog.yoyowallet.com")
+        self.assertEqual(links[70], "https://support.yoyowallet.com/hc/en-gb/categories/201132913-Legal-and-T-Cs")
+
