@@ -1,3 +1,4 @@
+tld
 aiohttp
 beautifulsoup4
 lxml
