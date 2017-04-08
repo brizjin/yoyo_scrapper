@@ -14,3 +14,5 @@ class AsyncioHelloWordTest(unittest.TestCase):
         async def func():
             self.assertEqual(42, 42)
         self.loop.run_until_complete(func())
+
+
