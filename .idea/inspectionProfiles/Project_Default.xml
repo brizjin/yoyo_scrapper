@@ -15,6 +15,7 @@
       <option name="ignoredIdentifiers">
         <list>
           <option value="os.__init__.path" />
+          <option value="concurrent.__init__.futures" />
         </list>
       </option>
     </inspection_tool>
