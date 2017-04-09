@@ -2,6 +2,7 @@ import asyncio
 import concurrent
 import logging
 import unittest
+from logging import FileHandler
 
 import aiohttp
 import sys
@@ -21,21 +22,32 @@ class AsyncioHelloWordTest(unittest.TestCase):
         loop = self.loop
         site_map = {}
         self.i = 0
-        logging.basicConfig(level=logging.INFO, format='PID %(process)5s %(threadName)10s %(name)18s: %(message)s', stream=sys.stderr)
+        # logging.basicConfig(level=logging.INFO, format='%(asctime)-15s PID %(process)5s %(threadName)10s %(name)18s: %(message)s')
+        # log_parse_page = logging.getLogger('parse_page')
+        # log_parse_page.addHandler(FileHandler("logs/parse_page.txt"))
+        # log_spy = logging.getLogger('spy')
+        # log_spy.addHandler(FileHandler("logs/spy.txt"))
 
         async def fetch_page(session, url):
-            log = logging.getLogger('fetch_page')
+            # log = logging.getLogger('fetch_page')
             async with session.get(url) as response:
-                log.info('begin')
+                # log.info('begin')
                 r = await response.text()
-                log.info('end')
+                # log.info('end')
                 return r
 
+        # async def test():
+        #     print("TEST")
+        #     # log = logging.getLogger('test')
+        #     # log.debug('test')
+        #     r = 1
+
         async def parse_page(executor, base_url, html_doc):
-            log = logging.getLogger('parse_page')
-            log.info('starting')
+
+            # log_parse_page.info('starting')
             r = await loop.run_in_executor(executor, parse_html, base_url, html_doc)
-            log.info('ending')
+            #r = await loop.run_in_executor(executor, test)
+            # log_parse_page.info('ending')
             return r
 
         async def spy(executor, session, url):
@@ -45,12 +57,11 @@ class AsyncioHelloWordTest(unittest.TestCase):
             if url in site_map:
                 return
 
-            print(self.i, url)
+            # log_spy.info(str(self.i) + " " + url)
             html_doc = await fetch_page(session, url)
             links, assets = await parse_page(executor, url, html_doc)
             site_map[url] = assets
-            for link in await asyncio.gather(*[spy(executor, session, link) for link in links]):
-                pass
+            await asyncio.gather(*[spy(executor, session, link) for link in links])
 
         async def main():
             with concurrent.futures.ProcessPoolExecutor(max_workers=8) as executor:
