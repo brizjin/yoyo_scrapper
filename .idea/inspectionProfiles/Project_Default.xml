@@ -16,6 +16,7 @@
         <list>
           <option value="os.__init__.path" />
           <option value="concurrent.__init__.futures" />
+          <option value="requests.__init__.exceptions" />
         </list>
       </option>
     </inspection_tool>

@@ -1,5 +1,5 @@
 requests
 tld
-aiohttp
 beautifulsoup4
 lxml
+click

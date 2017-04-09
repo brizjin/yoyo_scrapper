@@ -2,16 +2,13 @@ import asyncio
 import concurrent
 import logging
 
+import click
 import re
 import requests
 import time
 from bs4 import BeautifulSoup, SoupStrainer
 from tld import get_tld
 from urllib.parse import urljoin, urldefrag
-
-base_url = 'http://yoyowallet.com'
-requests_thread_pool_workers = 64
-parser_process_pool_workers = 16
 
 
 def parse_html(url, html_doc):
@@ -36,55 +33,58 @@ def parse_html(url, html_doc):
     return links, assets
 
 
-def scrap_site(url):
+@click.command()
+@click.option('--url', help='Url for start scrapping.')
+@click.option('--requests_threads', default=64, help='Number of threads for run http requests in parallel.')
+@click.option('--parser_processes', default=16, help='Number of processes for parse html files of pages.')
+@click.option('--max_pages', default=1000, help='Max number of pages to download.')
+@click.option('--max_level', default=5, help='Max number of jumps by links.')
+def scrap_site(url, requests_threads=64, parser_processes=16, max_pages=1000, max_level=5):
     loop = asyncio.get_event_loop()
     site_map = {}
 
-    class Level:
-        i = 0
+    class Counter:
+        page = 1
 
-    l = Level()
+    c = Counter()
 
-    thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=requests_thread_pool_workers)
-    processes_pool = concurrent.futures.ProcessPoolExecutor(max_workers=parser_process_pool_workers)
+    thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=requests_threads)
+    processes_pool = concurrent.futures.ProcessPoolExecutor(max_workers=parser_processes)
 
-    async def fetch_request(executor, url):
+    async def fetch_request(executor, fetch_url):
         try:
-            r = await loop.run_in_executor(executor, requests.get, url)
+            r = await loop.run_in_executor(executor, requests.get, fetch_url)
             return r.content
-        except Exception as e:
-            print("fetch_request error on url=", url)
+        except requests.exceptions.ConnectionError:
+            print("fetch_request error on url=", fetch_url)
 
-    async def parse_page(url, html_doc):
-        return await loop.run_in_executor(processes_pool, parse_html, url, html_doc)
+    async def parse_page(page_url, html_doc):
+        return await loop.run_in_executor(processes_pool, parse_html, page_url, html_doc)
 
-    async def spy(url):
-        if url in site_map:
+    async def spy(spy_url, level=1):
+        if spy_url in site_map:
             return
-        if l.i > 1000:
+        if c.page > max_pages or level > max_level:
             return
-        l.i += 1
-        site_map[url] = None
-        html_doc = await fetch_request(thread_pool, url)
+        c.page += 1
+        site_map[spy_url] = None
+        html_doc = await fetch_request(thread_pool, spy_url)
         if html_doc is not None:
-            links, assets = await parse_page(url, html_doc)
-            site_map[url] = assets
-            await asyncio.gather(*[spy(link) for link in links])
+            links, assets = await parse_page(spy_url, html_doc)
+            site_map[spy_url] = assets
+            await asyncio.gather(*[spy(link, level + 1) for link in links])
 
     async def main():
         await spy(url)
-        return site_map
+        return c.page - 1, site_map
 
-    return loop.run_until_complete(main())
-    # print(html.keys())
-    # print(html[list(html.keys())[10]])
+    beg_time = time.time()
+    pages_loaded, site_map_loaded = loop.run_until_complete(main())
+    print("\n\n\nSite-map with assets:")
+    for key in sorted(site_map_loaded.keys()):
+        print(key, site_map_loaded[key])
+    print("Downloaded %s pages from %s for %ss" % (pages_loaded, url, time.time() - beg_time))
 
 
 if __name__ == "__main__":
-    beg_time = time.time()
-    site_map = scrap_site(base_url)
-    # print("\n".join(sorted(site_map.keys())))
-    print("\n\n\nSite-map with assets:")
-    for key in sorted(site_map.keys()):
-        print(key, site_map[key])
-    print("Site %s have been scraped for %s" % (base_url, time.time() - beg_time))
+    scrap_site()
