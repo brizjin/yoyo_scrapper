@@ -61,7 +61,7 @@ class Bs4Test(unittest.TestCase):
 
     def test_py_get_asserts_by_func(self):
         assets = parse_html(self.py_url, self.py_file)[1]
-        #print("\n".join(assets))
+        # print("\n".join(assets))
         # for asset in assets:
         #     print(get_tld(asset, fail_silently=True), asset)
         self.assertIsNotNone(assets)
@@ -69,5 +69,10 @@ class Bs4Test(unittest.TestCase):
         self.assertEqual(assets[0], "http://blog.python.org")
         self.assertEqual(assets[133], "https://www.openstack.org")
 
-
-
+    def test_zip_files(self):
+        base_url = "http://yoyowallet.com/assets.html"
+        links, assets = parse_html(base_url, read_data("yoyo_assets.html"))
+        self.assertNotIn("http://yoyowallet.com/downloads/founders.zip", links)
+        self.assertNotIn("http://yoyowallet.com/downloads/logos.zip", links)
+        self.assertNotIn("http://yoyowallet.com/downloads/screenshots.zip", links)
+        # print("\n".join(links))
