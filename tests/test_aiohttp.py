@@ -3,6 +3,7 @@ import concurrent
 import logging
 import unittest
 from logging import FileHandler
+import requests
 
 import aiohttp
 import sys
@@ -22,11 +23,7 @@ class AsyncioHelloWordTest(unittest.TestCase):
         loop = self.loop
         site_map = {}
         self.i = 0
-        # logging.basicConfig(level=logging.INFO, format='%(asctime)-15s PID %(process)5s %(threadName)10s %(name)18s: %(message)s')
-        # log_parse_page = logging.getLogger('parse_page')
-        # log_parse_page.addHandler(FileHandler("logs/parse_page.txt"))
-        # log_spy = logging.getLogger('spy')
-        # log_spy.addHandler(FileHandler("logs/spy.txt"))
+        thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=256)
 
         async def fetch_page(session, url):
             # log = logging.getLogger('fetch_page')
@@ -35,6 +32,10 @@ class AsyncioHelloWordTest(unittest.TestCase):
                 r = await response.text()
                 # log.info('end')
                 return r
+
+        async def fetch_request(executor, url):
+            r = await loop.run_in_executor(executor, requests.get, url)
+            return r.content
 
         # async def test():
         #     print("TEST")
@@ -51,20 +52,22 @@ class AsyncioHelloWordTest(unittest.TestCase):
             return r
 
         async def spy(executor, session, url):
+
+            if url in site_map:
+                return
             if self.i > 100:
                 return
             self.i += 1
-            if url in site_map:
-                return
-
+            site_map[url] = None
             # log_spy.info(str(self.i) + " " + url)
-            html_doc = await fetch_page(session, url)
+            # html_doc = await fetch_page(session, url)
+            html_doc = await fetch_request(thread_pool, url)
             links, assets = await parse_page(executor, url, html_doc)
             site_map[url] = assets
             await asyncio.gather(*[spy(executor, session, link) for link in links])
 
         async def main():
-            with concurrent.futures.ProcessPoolExecutor(max_workers=8) as executor:
+            with concurrent.futures.ProcessPoolExecutor(max_workers=32) as executor:
                 async with aiohttp.ClientSession(loop=loop) as session:
                     base_url = 'http://python.org'
                     await spy(executor, session, base_url)
@@ -79,4 +82,5 @@ class AsyncioHelloWordTest(unittest.TestCase):
         html = loop.run_until_complete(main())
         # print(html)
         self.assertIsNotNone(html, "python.org returns null")
-        # print(html)
+        print(html.keys())
+        print(html[list(html.keys())[10]])

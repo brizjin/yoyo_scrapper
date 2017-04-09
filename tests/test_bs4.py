@@ -70,3 +70,4 @@ class Bs4Test(unittest.TestCase):
         self.assertEqual(assets[133], "https://www.openstack.org")
 
 
+
