@@ -83,4 +83,8 @@ def scrap_site(url):
 if __name__ == "__main__":
     beg_time = time.time()
     site_map = scrap_site(base_url)
+    # print("\n".join(sorted(site_map.keys())))
+    print("\n\n\nSite-map with assets:")
+    for key in sorted(site_map.keys()):
+        print(key, site_map[key])
     print("Site %s have been scraped for %s" % (base_url, time.time() - beg_time))
